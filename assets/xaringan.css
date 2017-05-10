@@ -61,6 +61,10 @@ img {
 .reduite img {
   max-height: 500px;
 }
+
+.mini img {
+  max-height: 250px;
+}
 blockquote {
   border-left: solid 5px lightgray;
   padding-left: 1em;

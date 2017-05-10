@@ -37,18 +37,18 @@ top100 <- keolis %>%
   arrange(desc(nombre)) %>% 
   slice(1:100)
 
-# library(MonetDBLite)
+#library(MonetDBLite)
 # library(DBI)
 
-# con <- dbConnect(monetdblite(), "./monetdb/")
-# monetdb.read.csv(con, files = "./data/Corpus_Mobilité.csv", tablename = "keolis")
-# 
+# con <- dbConnect(MonetDBLite::monetdblite(), "./monetdb")
+# dbWriteTable(con, "keolis", "./data/Corpus_Mobilité.csv", overwrite = TRUE)
+#
 # tbl_keolis <- tbl(con, "keolis")
-# 
-# tbl_keolis %>% 
-#   group_by(from_user_id) %>% 
+#
+# tbl_keolis %>%
+#   group_by(from_user_id) %>%
 #   summarise(twittos = head(from_user_name, 1), nombre = n()) %>%
-#   arrange(desc(nombre)) %>% 
+#   arrange(desc(nombre)) %>%
 #   slice(1:100)
 
 keolis <- keolis %>% 
