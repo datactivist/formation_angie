@@ -37,6 +37,35 @@ smartcity %>%
   mutate(français = lang %in% "fr") %>% 
   glimpse
 
+keolis %>% 
+  mutate(lang2 = recode(lang,
+                        "en" = "anglais",
+                        "fr" = "français")) %>% 
+  mutate(langue = case_when(lang %in% "fr" & from_user_lang %in% "fr" ~ "français",
+                            lang %in% "en" & from_user_lang %in% "en-GB" ~ "britannique",
+                            lang %in% "en" & from_user_lang %in% "en" ~ "ricain",
+                            lang %in% "it" | from_user_lang %in% "it" ~ "italien",
+                            !is.na(lang) ~ NA_character_)) %>% 
+  glimpse
+
+
+# au moins un tweet du twittos en anglais
+smartcity %>% 
+  group_by(from_user_id) %>% 
+  summarise(tweet_en_anglais = any(lang %in% "en"))
+
+# tous les tweets du twittos en anglais
+smartcity %>% 
+  group_by(from_user_id) %>% 
+  summarise(tweet_en_anglais = all(lang %in% "en"))
+
+# au moins un tweet du twittos en anglais
+smartcity %>% 
+  group_by(from_user_id) %>% 
+  mutate(tweet_en_anglais = any(lang %in% "en")) %>% 
+  filter(tweet_en_anglais)
+
+
 ### Graphiques
 
 library(lubridate)
@@ -196,3 +225,57 @@ bind_rows(keolis, smartcity, .id = "corpus") %>%
   theme(axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   labs(y = "Nombre de tweets", x = "")
+
+bind_rows(keolis, smartcity, .id = "corpus") %>% 
+  count(from_user_timezone, corpus) %>% 
+  filter(n > 1000) %>% 
+  arrange(n) %>%
+  filter(!is.na(from_user_timezone)) %>% 
+  mutate(from_user_timezone = fct_inorder(from_user_timezone)) %>%
+  ggplot(aes(x = from_user_timezone, y = n)) +
+  geom_bar(fill = "#0000cc", stat = "identity") +
+  geom_text(aes(label = from_user_timezone), hjust = 1.1, color = "white") +
+  facet_wrap(~ corpus) +
+  coord_flip() +
+  theme_ipsum(grid = "X") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  labs(y = "Nombre de tweets", x = "")
+
+bind_rows(keolis, smartcity, .id = "corpus") %>% 
+  count(from_user_timezone, corpus) %>% 
+  filter(n > 1000) %>% 
+  arrange(n) %>%
+  filter(!is.na(from_user_timezone)) %>% 
+  mutate(from_user_timezone = fct_inorder(from_user_timezone)) %>%
+  ggplot(aes(x = from_user_timezone, y = n)) +
+  geom_bar(fill = "#0000cc", stat = "identity") +
+  geom_text(aes(label = from_user_timezone), hjust = 1.1, color = "white") +
+  facet_wrap(~ corpus, scales = "free_x") +
+  coord_flip() +
+  theme_ipsum(grid = "X") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  labs(y = "Nombre de tweets", x = "")
+
+smartcity %>% 
+  ggplot(aes(x = created_at)) +
+  geom_density()
+
+
+smartcity %>% 
+  filter(from_user_followercount > 0, from_user_friendcount > 0) %>% 
+  ggplot(aes(x = from_user_followercount, y = from_user_friendcount)) +
+  geom_point(alpha = 0.02) +
+  geom_smooth() +
+  scale_x_log10() +
+  scale_y_log10()
+
+p <- smartcity %>% 
+  filter(from_user_followercount > 0, from_user_friendcount > 0) %>% 
+  ggplot(aes(x = from_user_followercount, y = from_user_friendcount)) +
+  geom_point(aes(size = from_user_tweetcount), alpha = 0.02) +
+  geom_smooth() +
+  scale_x_log10() +
+  scale_y_log10()
+
