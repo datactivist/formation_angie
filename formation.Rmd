@@ -14,4 +14,5 @@ On a identifié plusieurs pistes :
 
 - utiliser `git`
 - utiliser [Rmarkdown](http://rmarkdown.rstudio.com)
-- 
+
+Pour les identifiants : séparer les identifiants dans un fichier distinct qu'on ne synchronise pas. Utiliser le package [`config`](https://cran.r-project.org/web/packages/config/vignettes/introduction.html). 
