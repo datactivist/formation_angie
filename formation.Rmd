@@ -1,0 +1,17 @@
+---
+title: "Formation Angie"
+author: "Joel Gombin"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+
+# Reproducibilité 
+
+On a identifié plusieurs pistes :
+
+- utiliser `git`
+- utiliser [Rmarkdown](http://rmarkdown.rstudio.com)
+- 
