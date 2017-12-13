@@ -16,3 +16,131 @@ On a identifié plusieurs pistes :
 - utiliser [Rmarkdown](http://rmarkdown.rstudio.com)
 
 Pour les identifiants : séparer les identifiants dans un fichier distinct qu'on ne synchronise pas. Utiliser le package [`config`](https://cran.r-project.org/web/packages/config/vignettes/introduction.html). 
+
+- utiliser des [packages](http://r-pkgs.had.co.nz/)
+- utiliser des [tests unitaires](http://r-pkgs.had.co.nz/tests.html)
+- utiliser [l'intégration continue](http://r-pkgs.had.co.nz/check.html#travis)
+
+# Scraping
+
+- utiliser [selectorGadget](http://selectorgadget.com/)
+
+```{r}
+url_base <- "https://www.google.fr/search?biw=1920&bih=990&tbm=nws&ei=0QMxWouwK4HjUfe2g5AG&q=imerys&oq=imerys&gs_l=psy-ab.3..0l4.136471.137745.0.138260.6.5.0.1.1.0.110.360.4j1.5.0....0...1c.1.64.psy-ab..0.6.365....0.rLEWSB8xzqs"
+
+library(rvest)
+library(tidyverse)
+
+page <- url_base %>% 
+  read_html()
+
+titres <- page %>% 
+  html_nodes('h3 a') %>% 
+  html_text()
+titres_urls <- page %>% 
+  html_nodes('h3 a') %>% 
+  html_attr('href') %>% 
+  gsub("/url?q=", "", ., fixed = TRUE)
+
+date <- page %>% 
+  html_nodes(xpath = '//*[contains(concat( " ", @class, " " ), concat( " ", "_QHs", " " ))]')
+
+extract_page <- function(url) {
+  Sys.sleep(sample(seq(0.1, 1, 0.1), size = 1))
+  page <- url %>% 
+    read_html()
+  titres <- page %>% 
+  html_nodes('h3 a') %>% 
+  html_text()
+titres_urls <- page %>% 
+  html_nodes('h3 a') %>% 
+  html_attr('href') %>% 
+  gsub("/url?q=", "", ., fixed = TRUE)
+data_frame(titres = titres, urls = titres_urls)
+}
+
+# test
+extract_page(url_base)
+
+i <- 0
+url <- paste0("https://www.google.fr/search?q=imerys&num=100&biw=1920&bih=990&tbm=nws&ei=kA0xWriBBcH-UJmyluAP&start=", i, "&sa=N")
+df <- extract_page(url)
+
+for (i in seq(100, 23500, 100)) {
+  url <- paste0("https://www.google.fr/search?q=imerys&num=100&biw=1920&bih=990&tbm=nws&ei=kA0xWriBBcH-UJmyluAP&start=", i, "&sa=N")
+  tmp <- extract_page(url)
+  df <- bind_rows(df, tmp)
+  Sys.sleep(sample(seq(0.1, 1, 0.1), size = 1))
+}
+
+```
+
+## en fonctionnel
+
+```{r}
+urls <- paste0("https://www.google.fr/search?q=imerys&num=100&biw=1920&bih=990&tbm=nws&ei=kA0xWriBBcH-UJmyluAP&start=", seq(0, 23500, 100), "&sa=N")
+
+extract_page_safe <- safely(extract_page)
+
+resultats <- map_df(urls[1:10], ~ extract_page_safe(.x)$result)
+
+```
+
+## avec Rcrawler
+
+```{r}
+user_agents <- read_csv("./user_agents.csv", col_names = c("n", "ua", "popularite"))
+library(Rcrawler)
+Rcrawler(Website = url_base, no_cores = 1, no_conn = 1, Useragent = sample(user_agents$ua, size = 1, prob = user_agents$popularite))
+Rcrawler(Website = "http://teamopendata.org", no_cores = 3, no_conn = 3, MaxDepth = 10, Useragent = sample(user_agents$ua, size = 1, prob = user_agents$popularite))
+
+```
+
+## httr
+
+```{r}
+library(httr)
+library(jsonlite)
+
+requete <- GET(url = "https://api-adresse.data.gouv.fr/search/", 
+    query = list(q = "26 rue du Sentier")
+)
+
+status_code(requete)
+
+test <- content(requete)
+
+parsed <- content(requete, as = "text") %>% 
+  fromJSON() %>% 
+  .[["features"]] %>% 
+  flatten() %>% 
+  mutate(x = map_dbl(geometry.coordinates, 1),
+         y = map_dbl(geometry.coordinates, 2))
+
+
+library(WikipediR)
+t <- revision_content("fr", "wikipedia", revisions = c("6298771", "6298772"), clean_response = TRUE)
+
+
+# utiliser la version de développement de tidy : devtools::install_github("tidyverse/tidyr"), voir https://github.com/tidyverse/tidyr/issues/278
+
+t %>% 
+  map_df(~ data_frame(pageid = .x[["pageid"]],
+                   title = .x[["title"]],
+                   revisions = .x[["revisions"]])) %>% 
+  mutate(revid = map_chr(revisions, "revid"),
+         parentid = map_chr(revisions, possibly("parentid", otherwise = NA_character_)),
+         revision = map_chr(revisions, "*"))
+
+pages <- c("Vladimir Poutine", "Donald Trump")
+liens_pages <- map(pages, ~ page_external_links("fr", "wikipedia", page = .x)) # attention, bug non documenté sur le nb de résultat, limité aux 10 premiers.
+
+liens_pages %>% 
+  map(c("query", "pages")) %>% 
+  map_df(~ data_frame(pageid = map_chr(.x, "pageid"),
+                      title = map_chr(.x, "title"),
+                      links = map(.x, "extlinks"))) %>% 
+  unnest() %>% 
+  mutate(links = map_chr(links, "*"))
+```
+
